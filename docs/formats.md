@@ -42,3 +42,7 @@ Exe rules (beyond the basic layout below):
   indexOffset<fileSize, indexOffset+indexSize<=fileSize. (Second magic use @ 0x008D8F84.)
 - FNV-1 prime 0x01000193 used @ 0x0050E879 in an /Od-looking hash-table lookup
   (bucket = hash & 0x7FFF, 12-byte buckets). Mixed optimization levels per module.
+
+## .prop inheritance (read-only reconstruction)
+
+`src/resource/PropertyResolver.cpp` resolves the `parent` resource key (ID `0x00B2CCCB`) recursively through mounted package overlays. It normalizes the parent's `.prop` type ID, loads ancestors first and then applies child overrides. It preserves provenance, enforces depth and cycle limits, and leaves the caller's result empty on failure. Synthetic DBPF fixtures test overrides, patch layering and malformed chains. Real retail parity still needs per-build validation.
