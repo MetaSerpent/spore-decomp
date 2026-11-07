@@ -4,6 +4,10 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+# Prevent superseded commits from consuming duplicate hosted-runner minutes.
+concurrency:
+  group: resource-baseline-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   resource:
     name: Resource baseline - ${{ matrix.os }}
@@ -17,7 +21,7 @@ jobs:
       - name: Configure portable sources
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
       - name: Build resource library and tools
-        run: cmake --build build --config Release --target dbpf_tool resource_tests package_stack_tests --parallel 4
+        run: cmake --build build --config Release --target dbpf_tool resource_tests package_stack_tests property_list_tests --parallel 4
       - name: Run resource regression tests
         run: ctest --test-dir build --build-config Release --output-on-failure
       - name: Upload package inspection tool
