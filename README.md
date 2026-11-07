@@ -17,6 +17,24 @@ game, and must not be distributed.
 - `symbols/names.txt` — recovered names with provenance
 - `docs/` — plan and file-format notes
 
+## Portable terrain state
+
+The fork now includes an independently running, asset-free **headless terrain
+field** built on the reconstructed Spore `TerraformBrushFalloff` and
+`PlanetTypeFromTerraformValue` functions. Its grid, patch operations,
+serialization, checksums and CLI are newly written runtime abstractions:
+this is not yet the complete retail planet simulation.
+
+```sh
+cmake -S . -B build && cmake --build build --target spore_terrain_field terraform_field_tests
+ctest --test-dir build --output-on-failure
+./build/spore_terrain_field run 33 33 100 42 0.20 0.35 terrain.snapshot
+./build/spore_terrain_field inspect terrain.snapshot
+```
+
+Windows/Linux CI, deterministic replay, snapshot corruption and sanitizer
+tests run without original game assets. See `docs/TERRAIN_FIELD_MILESTONE.md`.
+
 ## Setup
 ```sh
 python3 -m venv .venv && .venv/bin/pip install pefile capstone pycryptodome unicorn

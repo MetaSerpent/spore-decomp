@@ -20,6 +20,13 @@ target_include_directories(spore_terrain_math PUBLIC src)
 target_compile_features(spore_terrain_math PUBLIC cxx_std_17)
 add_executable(spore_terraform_probe tools/terraform_probe.cpp)
 target_link_libraries(spore_terraform_probe PRIVATE spore_terrain_math)
+# Deterministic, saveable terrain state built on the recovered brush functions.
+add_library(spore_terrain_field_core STATIC src/runtime/TerraformField.cpp)
+target_include_directories(spore_terrain_field_core PUBLIC src)
+target_link_libraries(spore_terrain_field_core PUBLIC spore_terrain_math)
+target_compile_features(spore_terrain_field_core PUBLIC cxx_std_17)
+add_executable(spore_terrain_field tools/terrain_field.cpp)
+target_link_libraries(spore_terrain_field PRIVATE spore_terrain_field_core)
 if(MSVC)
   target_compile_options(spore_resource PRIVATE /W4)
 else()
@@ -42,6 +49,11 @@ target_link_libraries(terraform_math_tests PRIVATE spore_terrain_math)
 add_test(NAME gameplay_terraform_math COMMAND terraform_math_tests)
 add_test(NAME gameplay_terraform_probe
          COMMAND spore_terraform_probe type 0.8 0.75)
+add_executable(terraform_field_tests tests/terraform_field_tests.cpp)
+target_link_libraries(terraform_field_tests PRIVATE spore_terrain_field_core)
+add_test(NAME gameplay_terrain_state_and_replay COMMAND terraform_field_tests)
+add_test(NAME gameplay_terrain_field_smoke
+         COMMAND spore_terrain_field run 16 12 6 42 0.3 0.4)
 # Cross-package asset precedence: isolated, synthetic DBPF fixtures.
 add_executable(package_stack_tests tests/package_stack_tests.cpp)
 target_link_libraries(package_stack_tests PRIVATE spore_resource)
@@ -62,6 +74,10 @@ target_link_libraries(property_fuzz_tests PRIVATE spore_resource)
 add_test(NAME resource_property_mutations COMMAND property_fuzz_tests)
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
+  add_test(NAME gameplay_terrain_field_cli_blackbox
+           COMMAND "${Python3_EXECUTABLE}"
+                   "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_terrain_field_cli.py"
+                   "$<TARGET_FILE:spore_terrain_field>")
   add_test(NAME resource_property_audit_blackbox
            COMMAND "${Python3_EXECUTABLE}"
                    "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_prop_audit.py"
