@@ -44,7 +44,8 @@ add_library(spore_creature_runtime STATIC
   src/runtime/CreatureGeometry.cpp
   src/runtime/CreaturePhysics.cpp
   src/runtime/CreatureDynamics.cpp
-  src/runtime/CreatureNavigation.cpp)
+  src/runtime/CreatureNavigation.cpp
+  src/runtime/CreatureOrders.cpp)
 target_include_directories(spore_creature_runtime PUBLIC src)
 target_compile_features(spore_creature_runtime PUBLIC cxx_std_17)
 add_executable(spore_creature_probe tools/creature_probe.cpp)
@@ -140,6 +141,11 @@ target_link_libraries(creature_navigation_tests PRIVATE
                       spore_creature_runtime spore_terrain_field_core)
 add_test(NAME gameplay_creature_deterministic_navigation
          COMMAND creature_navigation_tests)
+add_executable(creature_orders_tests tests/creature_orders_tests.cpp)
+target_link_libraries(creature_orders_tests PRIVATE
+                      spore_creature_runtime spore_terrain_field_core)
+add_test(NAME gameplay_creature_persistent_destination_orders
+         COMMAND creature_orders_tests)
 # Cross-package asset precedence: isolated, synthetic DBPF fixtures.
 add_executable(package_stack_tests tests/package_stack_tests.cpp)
 target_link_libraries(package_stack_tests PRIVATE spore_resource)

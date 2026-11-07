@@ -25,3 +25,18 @@ This is BlackSpore-owned pathfinding code, NOT a claim of having reconstructed
 the original Spore AI, world navigation or pathfinding algorithms. Next,
 a controller can apply waypoints to the existing per-creature MotionWorld and
 player/AI goal state.
+
+## Persistent player / AI destinations
+
+`CreatureOrders` stores actor-ID-to-destination assignments in a canonical,
+versioned snapshot and recomputes the next A* waypoint from the *current*
+creature position at each update. That means terrain edits automatically
+trigger replanning, and unavailable paths remain pending rather than
+directing the actor through an obstacle. Player destinations take precedence
+over the simulation-provided default motion targets; the existing collision
+and velocity solver still enforces contact separation and inertia.
+
+Unit tests check movement toward a goal, deterministic save/restore replay,
+terrain detours, unreachable destinations and corrupted snapshots.
+The standalone module does not alter the original Spore AI; it is a
+new engine-facing behavior layer for the BlackSpore game runtime.
