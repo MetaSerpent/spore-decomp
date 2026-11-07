@@ -43,6 +43,9 @@ def audit(root: Path) -> dict:
     })
     global_annotations = Counter()
     for file in sorted(game.rglob("*.cpp")):
+        # Migrated TU directories can deliberately share the .cpp suffix.
+        if not file.is_file():
+            continue
         key = file.relative_to(game).parts[0]
         info = modules[key]
         info["cpp_files"] += 1
@@ -54,6 +57,8 @@ def audit(root: Path) -> dict:
                     info["address_markers"] += 1
                     global_annotations[match.group(1).lower()] += 1
     for file in sorted(game.rglob("*.txt")):
+        if not file.is_file():
+            continue
         kind = KINDS.get(file.name)
         if kind is None:
             continue
