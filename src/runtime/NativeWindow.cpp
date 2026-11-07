@@ -128,6 +128,7 @@ int RunDesktop(const std::string& title,uint32_t initialWidth,uint32_t initialHe
       TranslateMessage(&message);DispatchMessageW(&message);
     }
     if(!state.alive)break;
+    if(callbacks.shouldClose && callbacks.shouldClose())break;
     if(callbacks.onTick)callbacks.onTick();
     RECT rect{};
     GetClientRect(hwnd,&rect);
@@ -149,6 +150,7 @@ int RunDesktop(const std::string& title,uint32_t initialWidth,uint32_t initialHe
     ReleaseDC(hwnd,dc);
     std::this_thread::sleep_for(std::chrono::milliseconds(33));
   }
+  if(IsWindow(hwnd))DestroyWindow(hwnd);
   return 0;
 #elif defined(SPORE_NATIVE_X11)
   Display* display=XOpenDisplay(nullptr);
@@ -207,6 +209,7 @@ int RunDesktop(const std::string& title,uint32_t initialWidth,uint32_t initialHe
       }
     }
     if(!alive)break;
+    if(callbacks.shouldClose && callbacks.shouldClose())break;
     if(callbacks.onTick)callbacks.onTick();
     const auto frame=callbacks.onFrame(width,height);
     CheckFrame(frame,width,height);

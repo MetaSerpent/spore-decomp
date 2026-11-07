@@ -5,6 +5,8 @@
 #include "runtime/TerraformField.h"
 
 #include <chrono>
+#include <charconv>
+#include <system_error>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -23,13 +25,21 @@ std::string Read(const std::string& path){
 }
 }
 int main(int argc,char** argv){
- if(argc!=2){
-  std::cerr<<"Usage: spore_terrain_live <terrain.snapshot>\n"
+ if(argc!=2 && !(argc==4 && std::string(argv[2])=="--frames")){
+  std::cerr<<"Usage: spore_terrain_live <terrain.snapshot> [--frames 3]\n"
            <<"A/D rotate, W/S tilt, arrows pan, +/- zoom, R reset\n"
            <<"Left/right click raises/lowers terrain, F5 save edited snapshot, Escape quits\n";
   return 2;
  }
  try{
+  unsigned frameLimit=0;
+  if(argc==4){
+    const std::string arg(argv[3]);
+    const auto parsed=std::from_chars(arg.data(),arg.data()+arg.size(),frameLimit);
+    if(parsed.ec!=std::errc{}||parsed.ptr!=arg.data()+arg.size()||
+       frameLimit==0||frameLimit>300)
+      throw std::invalid_argument("--frames requires a value from 1 to 300");
+  }
   using namespace Spore::Terrain;
   using namespace Spore::Terrain::View;
   auto field=TerraformField::Restore(Read(argv[1]));
@@ -37,10 +47,14 @@ int main(int argc,char** argv){
   uint32_t lastWidth=960,lastHeight=600;
   const std::string savePath=std::string(argv[1])+".edited.snapshot";
   DesktopCallbacks cb;
+  unsigned rendered=0;
   cb.onFrame=[&](uint32_t w,uint32_t h){
     lastWidth=w;lastHeight=h;
-    return RenderTerrain(field,camera,w,h);
+    auto image=RenderTerrain(field,camera,w,h);
+    ++rendered;
+    return image;
   };
+  cb.shouldClose=[&]{return frameLimit!=0&&rendered>=frameLimit;};
   cb.onInput=[&](const InputEvent& e){
     if(e.kind==InputKind::MouseDown){
       const auto coords=ScreenToTerrain(camera,lastWidth,lastHeight,

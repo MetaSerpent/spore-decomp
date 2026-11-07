@@ -65,7 +65,11 @@ cmake --build build --target spore_terrain_live
 ./build/spore_terrain_live terrain.snapshot
 ```
 
-The public CI compiles the native application on Windows and Linux. The
+The public CI compiles the native application on Windows and Linux.
+The Linux CI also launches the actual window and draws frames under
+`xvfb-run`, so that even the native graphics-loop smoke test requires
+no person or physical display. Windows is compile-tested; real desktop
+interaction still warrants a later manual acceptance check. The
 window itself still needs a desktop/display for an interactive smoke test.
 
 ## Setup

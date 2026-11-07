@@ -114,6 +114,18 @@ target_link_libraries(property_fuzz_tests PRIVATE spore_resource)
 add_test(NAME resource_property_mutations COMMAND property_fuzz_tests)
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
+  # Run the real native X11 window and framebuffer blit loop under a virtual
+  # display; no manual E2E interaction or Spore game assets are required.
+  if(TARGET spore_terrain_live AND UNIX AND NOT APPLE)
+    find_program(SPORE_XVFB_RUN xvfb-run)
+    if(SPORE_XVFB_RUN)
+      add_test(NAME gameplay_native_desktop_virtual_display
+               COMMAND "${Python3_EXECUTABLE}"
+                       "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_live_headless.py"
+                       "$<TARGET_FILE:spore_terrain_field>"
+                       "$<TARGET_FILE:spore_terrain_live>")
+    endif()
+  endif()
   add_test(NAME gameplay_terrain_field_cli_blackbox
            COMMAND "${Python3_EXECUTABLE}"
                    "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_terrain_field_cli.py"

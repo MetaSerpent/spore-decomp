@@ -27,6 +27,8 @@ struct DesktopCallbacks {
   std::function<void(const InputEvent&)> onInput;
   // Called at most once per loop iteration (nominal ~30Hz).
   std::function<void()> onTick;
+  // Optional deterministic termination hook for virtual-display CI.
+  std::function<bool()> shouldClose;
 };
 
 // Blocks until the user closes the window or presses Escape.
