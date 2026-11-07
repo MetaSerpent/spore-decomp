@@ -12,6 +12,14 @@ add_library(spore_resource
   src/resource/PropertyResolver.cpp
   src/resource/PropertyDatabase.cpp)
 target_include_directories(spore_resource PUBLIC src)
+
+# Linkable portable gameplay math extracted from real migrated SPTerrain functions.
+# This is the first gameplay-oriented executable target in the source-first build.
+add_library(spore_terrain_math STATIC src/runtime/TerraformMath.cpp)
+target_include_directories(spore_terrain_math PUBLIC src)
+target_compile_features(spore_terrain_math PUBLIC cxx_std_17)
+add_executable(spore_terraform_probe tools/terraform_probe.cpp)
+target_link_libraries(spore_terraform_probe PRIVATE spore_terrain_math)
 if(MSVC)
   target_compile_options(spore_resource PRIVATE /W4)
 else()
@@ -29,6 +37,11 @@ enable_testing()
 add_executable(resource_tests tests/resource_tests.cpp)
 target_link_libraries(resource_tests PRIVATE spore_resource)
 add_test(NAME resource_unit COMMAND resource_tests)
+add_executable(terraform_math_tests tests/terraform_math_tests.cpp)
+target_link_libraries(terraform_math_tests PRIVATE spore_terrain_math)
+add_test(NAME gameplay_terraform_math COMMAND terraform_math_tests)
+add_test(NAME gameplay_terraform_probe
+         COMMAND spore_terraform_probe type 0.8 0.75)
 # Cross-package asset precedence: isolated, synthetic DBPF fixtures.
 add_executable(package_stack_tests tests/package_stack_tests.cpp)
 target_link_libraries(package_stack_tests PRIVATE spore_resource)
