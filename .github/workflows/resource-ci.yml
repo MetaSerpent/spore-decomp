@@ -27,7 +27,7 @@ jobs:
       - name: Configure portable sources
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
       - name: Build resource library and tools
-        run: cmake --build build --config Release --target dbpf_tool spore_prop_audit spore_terraform_probe terraform_math_tests spore_terrain_field terraform_field_tests spore_terrain_mesh_cli terrain_mesh_tests spore_terrain_view software_view_tests spore_terrain_live spore_creature_probe creature_runtime_tests creature_dynamics_tests recovered_creature_anim_tests creature_view_tests resource_tests package_stack_tests property_list_tests property_resolver_tests property_database_tests property_fuzz_tests --parallel 4
+        run: cmake --build build --config Release --target dbpf_tool spore_prop_audit spore_terraform_probe terraform_math_tests spore_terrain_field terraform_field_tests spore_terrain_mesh_cli terrain_mesh_tests spore_terrain_view software_view_tests spore_terrain_live spore_creature_live spore_creature_probe creature_runtime_tests creature_dynamics_tests recovered_creature_anim_tests creature_view_tests resource_tests package_stack_tests property_list_tests property_resolver_tests property_database_tests property_fuzz_tests --parallel 4
       - name: Run resource regression tests
         run: ctest --test-dir build --build-config Release --output-on-failure
       - name: Upload package inspection tool
@@ -59,6 +59,9 @@ jobs:
             build/spore_creature_probe
             build/Release/spore_creature_probe.exe
             build/spore_creature_probe.exe
+            build/spore_creature_live
+            build/Release/spore_creature_live.exe
+            build/spore_creature_live.exe
           if-no-files-found: error
           retention-days: 14
 

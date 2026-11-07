@@ -17,6 +17,25 @@ game, and must not be distributed.
 - `symbols/names.txt` — recovered names with provenance
 - `docs/` — plan and file-format notes
 
+## Native procedural creature gallery
+
+The new `spore_creature_live` program displays eight walking procedural
+creatures on a synthetic terrain map in a real Win32/X11 window. It uses
+the complete new chain: trait-dependent 3D mesh generation, persistent
+continuous motion/contacts, CPU depth-tested renderer and native input.
+
+```sh
+cmake --build build --target spore_creature_live
+./build/spore_creature_live
+# Run a genuine GUI smoke test without manual interaction on Linux:
+xvfb-run -a ./build/spore_creature_live --frames 12 --ppm preview.ppm
+```
+
+A/D orbit, W/S tilt, arrow keys pan, +/- zoom, R reset; Space pauses
+and M switches between 3D creatures and simple marker dots.
+Public CI automatically launches the native window and checks the produced
+frames, replay determinism, and argument handling.
+
 ## Real recovered Spore creature-animation functions
 
 The portable runtime now isolates and tests two actual migrated game

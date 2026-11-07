@@ -74,6 +74,9 @@ if(TARGET spore_native_window)
   target_include_directories(spore_native_window PUBLIC src)
   add_executable(spore_terrain_live tools/terrain_live.cpp)
   target_link_libraries(spore_terrain_live PRIVATE spore_native_window)
+  add_executable(spore_creature_live tools/creature_live.cpp)
+  target_link_libraries(spore_creature_live PRIVATE
+                        spore_native_window spore_creature_runtime)
 endif()
 add_executable(spore_terrain_view tools/terrain_view.cpp)
 target_link_libraries(spore_terrain_view PRIVATE spore_software_view)
@@ -158,6 +161,12 @@ if(Python3_Interpreter_FOUND)
                        "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_live_headless.py"
                        "$<TARGET_FILE:spore_terrain_field>"
                        "$<TARGET_FILE:spore_terrain_live>")
+      if(TARGET spore_creature_live)
+        add_test(NAME gameplay_native_creature_gait_virtual_display
+                 COMMAND "${Python3_EXECUTABLE}"
+                         "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_creature_live.py"
+                         "$<TARGET_FILE:spore_creature_live>")
+      endif()
     endif()
   endif()
   add_test(NAME gameplay_creature_probe_cli_blackbox
