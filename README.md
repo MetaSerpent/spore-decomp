@@ -35,6 +35,21 @@ ctest --test-dir build --output-on-failure
 Windows/Linux CI, deterministic replay, snapshot corruption and sanitizer
 tests run without original game assets. See `docs/TERRAIN_FIELD_MILESTONE.md`.
 
+### Offline OBJ mesh export
+
+The reconstructed terrain state can now be meshed into a conventional 3D
+Wavefront OBJ with correctly wound triangles, Y-up normals, and UV coordinates.
+This is new BlackSpore-compatible mesh-generation logic, **not a recovered
+retail rendering implementation**.
+
+```sh
+./build/spore_terrain_field run 32 32 100 42 .25 .5 terrain.snapshot
+./build/spore_terrain_mesh terrain.snapshot terrain.obj 100 30
+```
+
+The export is bounded to 262,144 vertices and has standalone C++ and
+subprocess regression tests that do not require any Spore game assets.
+
 ## Setup
 ```sh
 python3 -m venv .venv && .venv/bin/pip install pefile capstone pycryptodome unicorn

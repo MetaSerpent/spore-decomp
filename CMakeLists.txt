@@ -27,6 +27,13 @@ target_link_libraries(spore_terrain_field_core PUBLIC spore_terrain_math)
 target_compile_features(spore_terrain_field_core PUBLIC cxx_std_17)
 add_executable(spore_terrain_field tools/terrain_field.cpp)
 target_link_libraries(spore_terrain_field PRIVATE spore_terrain_field_core)
+# Conventional OBJ mesh export, derived from deterministic terrain height samples.
+add_library(spore_terrain_mesh_core STATIC src/runtime/TerrainMesh.cpp)
+target_include_directories(spore_terrain_mesh_core PUBLIC src)
+target_link_libraries(spore_terrain_mesh_core PUBLIC spore_terrain_field_core)
+add_executable(spore_terrain_mesh_cli tools/terrain_mesh.cpp)
+set_target_properties(spore_terrain_mesh_cli PROPERTIES OUTPUT_NAME spore_terrain_mesh)
+target_link_libraries(spore_terrain_mesh_cli PRIVATE spore_terrain_mesh_core)
 if(MSVC)
   target_compile_options(spore_resource PRIVATE /W4)
 else()
@@ -54,6 +61,9 @@ target_link_libraries(terraform_field_tests PRIVATE spore_terrain_field_core)
 add_test(NAME gameplay_terrain_state_and_replay COMMAND terraform_field_tests)
 add_test(NAME gameplay_terrain_field_smoke
          COMMAND spore_terrain_field run 16 12 6 42 0.3 0.4)
+add_executable(terrain_mesh_tests tests/terrain_mesh_tests.cpp)
+target_link_libraries(terrain_mesh_tests PRIVATE spore_terrain_mesh_core)
+add_test(NAME gameplay_terrain_mesh_export COMMAND terrain_mesh_tests)
 # Cross-package asset precedence: isolated, synthetic DBPF fixtures.
 add_executable(package_stack_tests tests/package_stack_tests.cpp)
 target_link_libraries(package_stack_tests PRIVATE spore_resource)
@@ -78,6 +88,11 @@ if(Python3_Interpreter_FOUND)
            COMMAND "${Python3_EXECUTABLE}"
                    "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_terrain_field_cli.py"
                    "$<TARGET_FILE:spore_terrain_field>")
+  add_test(NAME gameplay_terrain_mesh_cli_blackbox
+           COMMAND "${Python3_EXECUTABLE}"
+                   "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_terrain_mesh_cli.py"
+                   "$<TARGET_FILE:spore_terrain_field>"
+                   "$<TARGET_FILE:spore_terrain_mesh_cli>")
   add_test(NAME resource_property_audit_blackbox
            COMMAND "${Python3_EXECUTABLE}"
                    "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_prop_audit.py"
