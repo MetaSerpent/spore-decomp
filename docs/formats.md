@@ -65,3 +65,19 @@ This is a deliberately bounded read-only auditor, not an assertion of complete
 retail format coverage. Entries declaring more than 16 MiB unpacked data are
 skipped before decompression. Automated black-box tests generate synthetic
 DBPF packages without including any retail code or assets.
+
+## Hot-reloadable package configuration
+
+PropertyDatabase now records each mounted package with deterministic priority
+and filesystem modification stamps. RefreshIfChanged() is a zero-work no-op
+when timestamps and sizes match. Otherwise Reload() builds a new package stack
+before invalidating cached resolved properties. Failed reopens keep the previous
+cache and package stack in memory. Mount() is equally transactional.
+
+Callers must discard pointers from Get(), Find() and Resolve() after a successful
+Mount(), Clear() or Reload(). The current implementation is single-threaded.
+Rename-into-place when updating patches: modifying already-open files in place
+cannot guarantee the previous stack remains backed by immutable bytes.
+
+Regression fixtures cover property changes, explicit reload, unchanged refresh,
+cache invalidation and recovery after a corrupted package.

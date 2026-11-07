@@ -1,10 +1,12 @@
 #pragma once
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "resource/PropertyResolver.h"
 
@@ -24,6 +26,15 @@ class PropertyDatabase {
   // Successful mounts invalidate cached values. A failed mount keeps the old
   // package stack and caches usable, but returns a diagnostic through Error().
   bool Mount(const std::string& path, uint32_t priority = 0);
+
+  // Atomically prepare and reopen ALL mounted packages; the previous package
+  // stack and memoized properties survive a failed rebuild. Reload() forces a
+  // refresh, RefreshIfChanged() checks filesystem size+modification time first.
+  // Changes made in-place to already-open files cannot be isolated across a
+  // failed reload; write patches by atomic rename for robust hot reload.
+  bool Reload();
+  bool RefreshIfChanged();
+
   void Clear();
 
   // Returns nullptr on missing/cyclic/corrupt resources. Requests are memoized
@@ -76,7 +87,18 @@ class PropertyDatabase {
              (v.maxDepth + size_t(0x9e3779b9U) + (h << 6) + (h >> 2));
     }
   };
+  struct MountSpec {
+    std::string path;
+    uint32_t priority = 0;
+    std::uintmax_t byteSize = 0;
+    std::filesystem::file_time_type modified;
+  };
+
+  static bool MakeStamp(const std::string& path, uint32_t priority,
+                        MountSpec& result, std::string& error);
+
   PackageStack stack_;
+  std::vector<MountSpec> mounts_;
   std::unordered_map<CacheKey, ResolvedProperties, CacheHash> cache_;
   std::string error_;
   size_t hits_ = 0;

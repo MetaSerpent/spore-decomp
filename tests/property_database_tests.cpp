@@ -187,6 +187,56 @@ void TestCachingAndOverrides() {
   Require(db.Get<float>(Key(2), 102) && *db.Get<float>(Key(2), 102) == 3.0f,
           "latest equal-priority patch wins");
 
+  // Hot reload: a newly written package must be re-opened and all memoized
+  // effective properties invalidated. An unchanged filesystem does no work.
+  const auto currentGeneration = db.Generation();
+  const auto currentHitCount = db.CacheHits();
+  Require(db.RefreshIfChanged() && db.Generation() == currentGeneration &&
+          db.CacheHits() == currentHitCount, "unchanged refresh is a no-op");
+
+  // Keep the same path but change the package size, so detection is reliable
+  // even on filesystems with coarse modification timestamp resolution.
+  WritePackage(replacement, {
+      {Key(2), PropertyFile({Parent(0x1200, 1),
+                             Float(102, 0x40B00000), // 5.5f
+                             Bool(104, true)})},
+  });
+  const auto beforeRefresh = db.Generation();
+  Require(db.RefreshIfChanged(), "detect and load modified patch");
+  Require(db.Generation() == beforeRefresh + 1 && db.CacheEntries() == 0,
+          "changed package triggers one generation and clears cache");
+  Require(db.Get<float>(Key(2), 102) && *db.Get<float>(Key(2), 102) == 5.5f,
+          "freshly edited package value is visible after reload");
+  Require(db.Get<bool>(Key(2), 104) && *db.Get<bool>(Key(2), 104),
+          "new property appears after reload");
+
+  // A failed replacement must not discard the previous valid configuration.
+  const auto cachedBeforeFailure = db.CacheEntries();
+  const auto generationBeforeFailure = db.Generation();
+  // An in-place corruption changes the file's length, but does not require
+  // renaming an open file (which Windows may reject).
+  {
+    std::ofstream broken(replacement, std::ios::binary | std::ios::trunc);
+    Require(bool(broken), "open replacement for corruption test");
+    broken << "BAD";
+    Require(bool(broken), "write invalid DBPF data");
+  }
+  Require(!db.RefreshIfChanged() && !db.Error().empty(),
+          "corrupt mounted package fails hot reload");
+  Require(db.Generation() == generationBeforeFailure &&
+          db.CacheEntries() == cachedBeforeFailure,
+          "failed reload preserves generation and cached values");
+  Require(db.Get<float>(Key(2), 102) && *db.Get<float>(Key(2), 102) == 5.5f,
+          "last validated values remain available on reload failure");
+  WritePackage(replacement, {
+      {Key(2), PropertyFile({Parent(0x1200, 1), Float(102, 0x40B00000),
+                             Bool(104, true)})},
+  });
+  Require(db.Reload(), "manual reload after restoring package");
+  Require(db.Generation() == generationBeforeFailure + 1 &&
+          db.Get<float>(Key(2), 102) && *db.Get<float>(Key(2), 102) == 5.5f,
+          "restored package can be re-opened");
+
   const auto previousGeneration = db.Generation();
   db.Clear();
   Require(db.Generation() == previousGeneration + 1 &&
