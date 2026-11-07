@@ -21,6 +21,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Install X11 development headers
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libx11-dev
       - name: Configure portable sources
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
       - name: Build resource library and tools

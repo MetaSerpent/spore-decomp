@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cstdint>
 #include <cstring>
+#include <new>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -109,7 +110,7 @@ int RunDesktop(const std::string& title,uint32_t initialWidth,uint32_t initialHe
   wc.lpfnWndProc=WindowProc;
   wc.hInstance=GetModuleHandleW(nullptr);
   wc.lpszClassName=kClass;
-  wc.hCursor=LoadCursorW(nullptr,IDC_ARROW);
+  wc.hCursor=LoadCursorW(nullptr,MAKEINTRESOURCEW(32512));
   wc.style=CS_HREDRAW|CS_VREDRAW;
   if(!RegisterClassW(&wc)&&GetLastError()!=ERROR_CLASS_ALREADY_EXISTS)
     throw std::runtime_error("Win32 viewer window class registration failed");
@@ -130,8 +131,8 @@ int RunDesktop(const std::string& title,uint32_t initialWidth,uint32_t initialHe
     if(callbacks.onTick)callbacks.onTick();
     RECT rect{};
     GetClientRect(hwnd,&rect);
-    const int width=std::clamp(rect.right-rect.left,64,1920);
-    const int height=std::clamp(rect.bottom-rect.top,64,1080);
+    const int width=std::clamp<int>(rect.right-rect.left,64,1920);
+    const int height=std::clamp<int>(rect.bottom-rect.top,64,1080);
     const auto frame=callbacks.onFrame(uint32_t(width),uint32_t(height));
     CheckFrame(frame,uint32_t(width),uint32_t(height));
     BITMAPINFO bmi{};
