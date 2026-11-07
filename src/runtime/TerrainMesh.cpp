@@ -29,7 +29,8 @@ Vec3 Normal(const TerraformField& field, std::uint32_t x, std::uint32_t z,
   const double sz = (double(field.At(x,far)) - double(field.At(x,near))) *
                     double(verticalScale) / dz;
   const double norm = std::sqrt(sx*sx + 1.0 + sz*sz);
-  return {-sx/norm, 1.0/norm, -sz/norm};
+  return {sx == 0.0 ? 0.0 : -sx/norm, 1.0/norm,
+          sz == 0.0 ? 0.0 : -sz/norm};
 }
 std::size_t Index(std::uint32_t x,std::uint32_t z,std::uint32_t width) {
   return std::size_t(z) * width + x + 1;
