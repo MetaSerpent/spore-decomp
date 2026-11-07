@@ -46,3 +46,22 @@ Exe rules (beyond the basic layout below):
 ## .prop inheritance (read-only reconstruction)
 
 `src/resource/PropertyResolver.cpp` resolves the `parent` resource key (ID `0x00B2CCCB`) recursively through mounted package overlays. It normalizes the parent's `.prop` type ID, loads ancestors first and then applies child overrides. It preserves provenance, enforces depth and cycle limits, and leaves the caller's result empty on failure. Synthetic DBPF fixtures test overrides, patch layering and malformed chains. Real retail parity still needs per-build validation.
+
+## Full property inventory without executable matching
+
+Build spore_prop_audit from the portable CMake project. Supply ordered
+Spore .package files to inspect the last-wins effective resource stack:
+
+    spore_prop_audit --verify-parents --strict BaseGame.package Patch.package
+
+The command emits deterministic JSON with property_resources, decoded, failed,
+oversized, property_records, counts per observed type ID and individual error
+diagnostics. --verify-parents also validates inherited property chains via the
+new cached PropertyDatabase. --strict returns exit code 3 if any resource cannot
+be decoded, useful as a regression gate on an owned corpus. Default mode
+reports failures but does not abort analysis.
+
+This is a deliberately bounded read-only auditor, not an assertion of complete
+retail format coverage. Entries declaring more than 16 MiB unpacked data are
+skipped before decompression. Automated black-box tests generate synthetic
+DBPF packages without including any retail code or assets.
