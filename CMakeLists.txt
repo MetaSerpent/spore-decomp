@@ -9,7 +9,8 @@ add_library(spore_resource
   src/resource/Hash.cpp
   src/resource/PackageStack.cpp
   src/resource/PropertyList.cpp
-  src/resource/PropertyResolver.cpp)
+  src/resource/PropertyResolver.cpp
+  src/resource/PropertyDatabase.cpp)
 target_include_directories(spore_resource PUBLIC src)
 if(MSVC)
   target_compile_options(spore_resource PRIVATE /W4)
@@ -35,6 +36,10 @@ add_test(NAME resource_property_list COMMAND property_list_tests)
 add_executable(property_resolver_tests tests/property_resolver_tests.cpp)
 target_link_libraries(property_resolver_tests PRIVATE spore_resource)
 add_test(NAME resource_property_inheritance COMMAND property_resolver_tests)
+# A memoized, typed configuration manager with deterministic package priorities.
+add_executable(property_database_tests tests/property_database_tests.cpp)
+target_link_libraries(property_database_tests PRIVATE spore_resource)
+add_test(NAME resource_property_database COMMAND property_database_tests)
 # Corpus tests need the user's own game data; point SPORE_DATA at Spore/Data.
 if(DEFINED ENV{SPORE_DATA})
   add_test(NAME resource_corpus COMMAND resource_tests --corpus $ENV{SPORE_DATA})

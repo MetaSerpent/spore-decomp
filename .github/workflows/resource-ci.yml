@@ -21,7 +21,7 @@ jobs:
       - name: Configure portable sources
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
       - name: Build resource library and tools
-        run: cmake --build build --config Release --target dbpf_tool resource_tests package_stack_tests property_list_tests property_resolver_tests --parallel 4
+        run: cmake --build build --config Release --target dbpf_tool resource_tests package_stack_tests property_list_tests property_resolver_tests property_database_tests --parallel 4
       - name: Run resource regression tests
         run: ctest --test-dir build --build-config Release --output-on-failure
       - name: Upload package inspection tool
