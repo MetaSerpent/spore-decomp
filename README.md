@@ -37,6 +37,14 @@ alongside its original terrain raster and optional marker overlays. Rendering
 is bounded to 128 creatures per frame. `creature_view_tests` compares
 repeatable frame hashes as traits, poses and positions change.
 
+A separate `MotionWorld` layer now provides continuous, persistent
+creature movement: stable ID-sorted actor state, damped velocities,
+deterministic spatial contact resolution, dead-actor pruning and
+versioned save/restore. It accepts gameplay movement targets but does not
+require the original Spore runtime or any assets. Its test suite checks
+150-step replay, shuffled actor order, overlapping spawns, invalid data and
+snapshot reconstruction.
+
 CI runs generated-geometry topology, gait, invalid-input and contact
 regressions, plus executable-level OBJ exports without retail game data.
 

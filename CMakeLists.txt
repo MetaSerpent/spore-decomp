@@ -36,7 +36,8 @@ target_link_libraries(spore_terrain_mesh_core PUBLIC spore_terrain_field_core)
 # Maxis skeletal/rigging or physics implementations.
 add_library(spore_creature_runtime STATIC
   src/runtime/CreatureGeometry.cpp
-  src/runtime/CreaturePhysics.cpp)
+  src/runtime/CreaturePhysics.cpp
+  src/runtime/CreatureDynamics.cpp)
 target_include_directories(spore_creature_runtime PUBLIC src)
 target_compile_features(spore_creature_runtime PUBLIC cxx_std_17)
 add_executable(spore_creature_probe tools/creature_probe.cpp)
@@ -113,6 +114,10 @@ add_executable(creature_runtime_tests tests/creature_runtime_tests.cpp)
 target_link_libraries(creature_runtime_tests PRIVATE spore_creature_runtime)
 add_test(NAME gameplay_creature_geometry_gait_and_contacts
          COMMAND creature_runtime_tests)
+add_executable(creature_dynamics_tests tests/creature_dynamics_tests.cpp)
+target_link_libraries(creature_dynamics_tests PRIVATE spore_creature_runtime)
+add_test(NAME gameplay_creature_persistent_motion_replay
+         COMMAND creature_dynamics_tests)
 # Cross-package asset precedence: isolated, synthetic DBPF fixtures.
 add_executable(package_stack_tests tests/package_stack_tests.cpp)
 target_link_libraries(package_stack_tests PRIVATE spore_resource)
