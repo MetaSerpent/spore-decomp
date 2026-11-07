@@ -31,6 +31,12 @@ target_link_libraries(spore_terrain_field PRIVATE spore_terrain_field_core)
 add_library(spore_terrain_mesh_core STATIC src/runtime/TerrainMesh.cpp)
 target_include_directories(spore_terrain_mesh_core PUBLIC src)
 target_link_libraries(spore_terrain_mesh_core PUBLIC spore_terrain_field_core)
+# Recover two isolated animation-version functions from the migrated
+# SP/CreatureAnim game binary objects (0x009A8170 and 0x009A81B0).
+add_library(spore_recovered_creature_anim STATIC
+            src/runtime/RecoveredCreatureAnim.cpp)
+target_include_directories(spore_recovered_creature_anim PUBLIC src)
+target_compile_features(spore_recovered_creature_anim PUBLIC cxx_std_17)
 # Portable procedural creature morphology, gait and deterministic broadphase
 # contact resolution. These modules are new BlackSpore code, NOT recovered
 # Maxis skeletal/rigging or physics implementations.
@@ -112,6 +118,10 @@ target_link_libraries(creature_view_tests PRIVATE spore_software_view)
 add_test(NAME gameplay_creature_mesh_depth_rendering COMMAND creature_view_tests)
 add_executable(creature_runtime_tests tests/creature_runtime_tests.cpp)
 target_link_libraries(creature_runtime_tests PRIVATE spore_creature_runtime)
+add_executable(recovered_creature_anim_tests tests/recovered_creature_anim_tests.cpp)
+target_link_libraries(recovered_creature_anim_tests PRIVATE spore_recovered_creature_anim)
+add_test(NAME gameplay_recovered_creature_animation_version
+         COMMAND recovered_creature_anim_tests)
 add_test(NAME gameplay_creature_geometry_gait_and_contacts
          COMMAND creature_runtime_tests)
 add_executable(creature_dynamics_tests tests/creature_dynamics_tests.cpp)

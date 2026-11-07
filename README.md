@@ -17,6 +17,23 @@ game, and must not be distributed.
 - `symbols/names.txt` — recovered names with provenance
 - `docs/` — plan and file-format notes
 
+## Real recovered Spore creature-animation functions
+
+The portable runtime now isolates and tests two actual migrated game
+functions from `src/game/SPCreatureAnim/animation_version.cpp`:
+
+- `FUN_009a8170` at **0x009A8170**, a rank-ordered bit
+  deposit used in animation flag/property processing.
+- `ConvertEvent_v11_v12` at **0x009A81B0**, conversion
+  of 12-word animation version-11 events to 24-word version-12 events,
+  including the retail function's source mutation and flag remapping.
+
+They are rewritten as self-contained, ABI-independent C++17 functions in
+`src/runtime/RecoveredCreatureAnim.cpp` with reproducible fixtures,
+20,000 independent bit-deposit comparisons and CI on Windows/Linux/ASan.
+The full CreatureAnim engine still depends on unported EA, RenderWare,
+skeleton and original animation resource infrastructure.
+
 ## Procedural creature geometry and deterministic contacts
 
 The new `spore_creature_runtime` C++17 library builds trait-dependent
