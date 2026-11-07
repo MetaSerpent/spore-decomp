@@ -17,6 +17,23 @@ game, and must not be distributed.
 - `symbols/names.txt` — recovered names with provenance
 - `docs/` — plan and file-format notes
 
+## Procedural creature geometry and deterministic contacts
+
+The new `spore_creature_runtime` C++17 library builds trait-dependent
+procedural creature meshes (body, four articulated-looking animated feet,
+eyes, tail and defensive spines) and supplies a **deterministic spatial-hash
+contact solver** for circular collision proxies. This is original BlackSpore
+engine development, **not a recovered Maxis creature editor/physics engine**.
+
+```sh
+cmake --build build --target spore_creature_probe creature_runtime_tests
+./build/spore_creature_probe mesh .8 .9 .8 .7 1.6 creature.obj
+./build/spore_creature_probe contact 3 3 .4 3.2 3 .4
+```
+
+CI runs generated-geometry topology, gait, invalid-input and contact
+regressions, plus executable-level OBJ exports without retail game data.
+
 ## Portable terrain state
 
 The fork now includes an independently running, asset-free **headless terrain
