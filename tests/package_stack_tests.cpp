@@ -83,6 +83,12 @@ void Test() {
     Check(Text(stack, shared) == "low", "first-entry-wins");
     Check(stack.Mount(high.string(), 20), "mount high");
     Check(stack.Size() == 3, "overlay distinct key count");
+    const auto ordered = stack.EffectiveEntries();
+    Check(ordered.size() == 3, "effective index count");
+    Check(ordered[0].key.instance == 0x10 &&
+          ordered[1].key.instance == 0x11 &&
+          ordered[2].key.instance == 0x12, "stable sorted resource index");
+    Check(ordered[0].layer == 1, "effective index source layer");
     Check(Text(stack, shared) == "high", "higher priority overrides");
     Check(Text(stack, low_only) == "local", "retains lower unique key");
     Check(Text(stack, high_only) == "other", "high-only key");
