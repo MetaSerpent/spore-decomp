@@ -139,6 +139,23 @@ no person or physical display. Windows is compile-tested; real desktop
 interaction still warrants a later manual acceptance check. The
 window itself still needs a desktop/display for an interactive smoke test.
 
+### Creature route planning
+
+The portable creature runtime now provides deterministic A* terrain navigation:
+walkable waterline, maximum climb/descent, elevation-weighted movement cost,
+stable tie-breaks, and exact grid waypoints. It is a **new engine subsystem**,
+not an original Spore pathfinding routine.
+
+```sh
+./build/spore_terrain_field run 32 32 40 42 .24 .3 terrain.snapshot
+./build/spore_creature_route terrain.snapshot 1 1 30 30
+```
+
+The route is emitted as CSV coordinates for behavior controllers, and the
+runtime reports unreachable routes explicitly. Windows/Linux CI tests synthetic
+obstacles, an optimal maze detour, slope avoidance, repeated queries, bounds,
+and the standalone routing tool without retail assets.
+
 ## Setup
 ```sh
 python3 -m venv .venv && .venv/bin/pip install pefile capstone pycryptodome unicorn

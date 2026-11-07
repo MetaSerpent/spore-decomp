@@ -43,11 +43,15 @@ target_compile_features(spore_recovered_creature_anim PUBLIC cxx_std_17)
 add_library(spore_creature_runtime STATIC
   src/runtime/CreatureGeometry.cpp
   src/runtime/CreaturePhysics.cpp
-  src/runtime/CreatureDynamics.cpp)
+  src/runtime/CreatureDynamics.cpp
+  src/runtime/CreatureNavigation.cpp)
 target_include_directories(spore_creature_runtime PUBLIC src)
 target_compile_features(spore_creature_runtime PUBLIC cxx_std_17)
 add_executable(spore_creature_probe tools/creature_probe.cpp)
 target_link_libraries(spore_creature_probe PRIVATE spore_creature_runtime)
+add_executable(spore_creature_route tools/creature_route.cpp)
+target_link_libraries(spore_creature_route PRIVATE
+                      spore_creature_runtime spore_terrain_field_core)
 
 # CPU-only renderer: deterministic 3D projection/rasterization for any terrain.
 add_library(spore_software_view STATIC src/runtime/SoftwareView.cpp)
@@ -131,6 +135,11 @@ add_executable(creature_dynamics_tests tests/creature_dynamics_tests.cpp)
 target_link_libraries(creature_dynamics_tests PRIVATE spore_creature_runtime)
 add_test(NAME gameplay_creature_persistent_motion_replay
          COMMAND creature_dynamics_tests)
+add_executable(creature_navigation_tests tests/creature_navigation_tests.cpp)
+target_link_libraries(creature_navigation_tests PRIVATE
+                      spore_creature_runtime spore_terrain_field_core)
+add_test(NAME gameplay_creature_deterministic_navigation
+         COMMAND creature_navigation_tests)
 # Cross-package asset precedence: isolated, synthetic DBPF fixtures.
 add_executable(package_stack_tests tests/package_stack_tests.cpp)
 target_link_libraries(package_stack_tests PRIVATE spore_resource)
@@ -169,6 +178,11 @@ if(Python3_Interpreter_FOUND)
       endif()
     endif()
   endif()
+  add_test(NAME gameplay_creature_route_cli_blackbox
+           COMMAND "${Python3_EXECUTABLE}"
+                   "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_creature_route.py"
+                   "$<TARGET_FILE:spore_terrain_field>"
+                   "$<TARGET_FILE:spore_creature_route>")
   add_test(NAME gameplay_creature_probe_cli_blackbox
            COMMAND "${Python3_EXECUTABLE}"
                    "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_creature_probe.py"
