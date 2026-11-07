@@ -33,6 +33,8 @@ class PackageStack {
   size_t LayerCount() const { return layers_.size(); }
   std::vector<Layer> Layers() const;
   std::optional<Location> Locate(const ResourceKey& key) const;
+  // Stable sorted key order; useful for reproducible asset catalogs.
+  std::vector<Location> EffectiveEntries() const;
   std::optional<std::vector<uint8_t>> Read(const ResourceKey& key);
   const std::string& Error() const { return error_; }
 
