@@ -30,3 +30,22 @@ jobs:
             build/dbpf_tool.exe
           if-no-files-found: error
           retention-days: 14
+
+  source-inventory:
+    name: Reconstructed source audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify recovery audit against synthetic manifests
+        run: python -m unittest discover -s tools/tests -p 'test_recovery_audit.py' -v
+      - name: Inventory all migrated game modules without any retail assets
+        run: python tools/recovery_audit.py --check --json artifacts/source-inventory.json --markdown artifacts/source-inventory.md
+      - name: Publish migration and decompilation inventories
+        uses: actions/upload-artifact@v4
+        with:
+          name: reconstruction-source-audit
+          path: artifacts/
+          retention-days: 30
