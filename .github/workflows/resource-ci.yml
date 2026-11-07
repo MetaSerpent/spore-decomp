@@ -27,7 +27,7 @@ jobs:
       - name: Configure portable sources
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
       - name: Build resource library and tools
-        run: cmake --build build --config Release --target dbpf_tool spore_prop_audit spore_terraform_probe terraform_math_tests spore_terrain_field terraform_field_tests spore_terrain_mesh_cli terrain_mesh_tests spore_terrain_view software_view_tests spore_terrain_live spore_creature_probe creature_runtime_tests resource_tests package_stack_tests property_list_tests property_resolver_tests property_database_tests property_fuzz_tests --parallel 4
+        run: cmake --build build --config Release --target dbpf_tool spore_prop_audit spore_terraform_probe terraform_math_tests spore_terrain_field terraform_field_tests spore_terrain_mesh_cli terrain_mesh_tests spore_terrain_view software_view_tests spore_terrain_live spore_creature_probe creature_runtime_tests creature_view_tests resource_tests package_stack_tests property_list_tests property_resolver_tests property_database_tests property_fuzz_tests --parallel 4
       - name: Run resource regression tests
         run: ctest --test-dir build --build-config Release --output-on-failure
       - name: Upload package inspection tool
@@ -98,7 +98,7 @@ jobs:
         run: >
           cmake --build build-sanitized --parallel 4
           --target resource_tests package_stack_tests property_list_tests
-          property_resolver_tests property_database_tests property_fuzz_tests spore_prop_audit terraform_math_tests spore_terraform_probe terraform_field_tests spore_terrain_field terrain_mesh_tests spore_terrain_mesh_cli software_view_tests spore_terrain_view creature_runtime_tests spore_creature_probe
+          property_resolver_tests property_database_tests property_fuzz_tests spore_prop_audit terraform_math_tests spore_terraform_probe terraform_field_tests spore_terrain_field terrain_mesh_tests spore_terrain_mesh_cli software_view_tests spore_terrain_view creature_runtime_tests spore_creature_probe creature_view_tests
       - name: Execute sanitized property regression suite
         env:
           ASAN_OPTIONS: detect_leaks=1:abort_on_error=1

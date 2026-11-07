@@ -45,7 +45,8 @@ target_link_libraries(spore_creature_probe PRIVATE spore_creature_runtime)
 # CPU-only renderer: deterministic 3D projection/rasterization for any terrain.
 add_library(spore_software_view STATIC src/runtime/SoftwareView.cpp)
 target_include_directories(spore_software_view PUBLIC src)
-target_link_libraries(spore_software_view PUBLIC spore_terrain_field_core)
+target_link_libraries(spore_software_view PUBLIC
+    spore_terrain_field_core spore_creature_runtime)
 # Platform-native interactive viewer with CPU software rasterization.
 # Windows uses GDI/Win32; Linux uses X11 when its development headers exist.
 if(WIN32)
@@ -105,6 +106,9 @@ add_test(NAME gameplay_terrain_mesh_export COMMAND terrain_mesh_tests)
 add_executable(software_view_tests tests/software_view_tests.cpp)
 target_link_libraries(software_view_tests PRIVATE spore_software_view)
 add_test(NAME gameplay_software_view_render_and_controls COMMAND software_view_tests)
+add_executable(creature_view_tests tests/creature_view_tests.cpp)
+target_link_libraries(creature_view_tests PRIVATE spore_software_view)
+add_test(NAME gameplay_creature_mesh_depth_rendering COMMAND creature_view_tests)
 add_executable(creature_runtime_tests tests/creature_runtime_tests.cpp)
 target_link_libraries(creature_runtime_tests PRIVATE spore_creature_runtime)
 add_test(NAME gameplay_creature_geometry_gait_and_contacts

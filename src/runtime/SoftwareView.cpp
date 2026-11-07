@@ -6,6 +6,7 @@
 #include <ostream>
 #include <stdexcept>
 #include <vector>
+#include <cstdint>
 
 namespace Spore::Terrain::View {
 namespace {
@@ -103,10 +104,11 @@ void ApplyCameraAction(Camera& camera,Action action,float strength) {
 }
 
 Frame RenderTerrain(const TerraformField& terrain,const Camera& camera,
-                    uint32_t w,uint32_t h,const std::vector<Marker>& markers) {
+                    uint32_t w,uint32_t h,const std::vector<Marker>& markers,
+                    const std::vector<CreatureInstance>& creatures) {
   if(!IsValid(camera)||w<32||h<32||uint64_t(w)*h>4000000ULL||
      uint64_t(terrain.Width())*terrain.Height()>131072ULL ||
-     markers.size()>10000)
+     markers.size()>10000 || creatures.size()>128)
     throw std::invalid_argument("invalid software-renderer dimensions or camera");
   for(const auto& marker:markers){
     if(!std::isfinite(marker.x)||!std::isfinite(marker.z)||
@@ -145,6 +147,53 @@ Frame RenderTerrain(const TerraformField& terrain,const Camera& camera,
                  projected[i+1],colour);
     FillTriangle(f,depth,projected[i+1],projected[i+tw],
                  projected[i+tw+1],colour);
+  }
+  // Actual indexed 3D anatomy (not just icon overlays). Creature shapes
+  // are generated from traits and gait phase, transformed into the terrain
+  // coordinate system, then depth-tested against world triangles.
+  for(const auto& creature:creatures) {
+    if(!std::isfinite(creature.x)||!std::isfinite(creature.z)||
+       !std::isfinite(creature.yaw)||!std::isfinite(creature.phase)||
+       creature.x<0||creature.x>1||creature.z<0||creature.z>1)
+      throw std::invalid_argument("invalid creature transform");
+    const auto anatomy=Spore::Creature::GenerateCreature(
+        creature.traits,creature.phase,8,4);
+    const auto baseX=uint32_t(std::lround(creature.x*float(tw-1)));
+    const auto baseZ=uint32_t(std::lround(creature.z*float(th-1)));
+    const auto baseY=terrain.At(baseX,baseZ);
+    const auto cosine=std::cos(creature.yaw);
+    const auto sine=std::sin(creature.yaw);
+    std::vector<Pt> projectedCreature;
+    projectedCreature.reserve(anatomy.vertices.size());
+    for(const auto& v:anatomy.vertices){
+      const float x=creature.x+
+         (cosine*v.x-sine*v.z)/float(tw-1);
+      const float z=creature.z+
+         (sine*v.x+cosine*v.z)/float(th-1);
+      projectedCreature.push_back(Project(
+         x,z,baseY+v.y*.23f,camera,projection));
+    }
+    for(const auto& t:anatomy.triangles){
+      // Height-dependent simple Lambert shading to expose creature relief.
+      const auto& a=anatomy.vertices[t.a];
+      const auto& b=anatomy.vertices[t.b];
+      const auto& c=anatomy.vertices[t.c];
+      const float ux=b.x-a.x,uy=b.y-a.y,uz=b.z-a.z;
+      const float vx=c.x-a.x,vy=c.y-a.y,vz=c.z-a.z;
+      const float nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;
+      const float length=std::sqrt(nx*nx+ny*ny+nz*nz);
+      if(length<1e-7f)continue;
+      const float light=std::clamp(.72f+
+         .23f*(nx*.2f+ny*.9f-nz*.35f)/length,.35f,1.f);
+      const auto channel=[light](uint32_t v){
+        return uint32_t(std::clamp(float(v)*light,0.f,255.f));
+      };
+      const auto colour=(channel((t.colour>>16)&255)<<16)|
+                        (channel((t.colour>>8)&255)<<8)|
+                        channel(t.colour&255);
+      FillTriangle(f,depth,projectedCreature[t.a],
+                   projectedCreature[t.b],projectedCreature[t.c],colour);
+    }
   }
   for(const auto& marker:markers){
     if(marker.x<0||marker.x>1||marker.z<0||marker.z>1||marker.radius<=0)continue;

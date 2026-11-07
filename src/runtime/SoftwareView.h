@@ -1,5 +1,6 @@
 #pragma once
 #include "runtime/TerraformField.h"
+#include "runtime/CreatureGeometry.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -31,6 +32,13 @@ struct Marker {
   uint32_t colour = 0x00FFF1A0U;
   float radius = 4.0f;  // output pixel radius
 };
+// Procedural animated creature in normalized terrain coordinates.
+struct CreatureInstance {
+  float x = 0.5f, z = 0.5f;       // [0,1]
+  float yaw = 0.0f;               // radians, forward direction
+  float phase = 0.0f;             // gait phase in radians
+  Spore::Creature::Traits traits;
+};
 struct Frame {
   uint32_t width = 0;
   uint32_t height = 0;
@@ -40,7 +48,8 @@ struct Frame {
 };
 Frame RenderTerrain(const TerraformField& terrain, const Camera& camera,
                     uint32_t imageWidth, uint32_t imageHeight,
-                    const std::vector<Marker>& markers = {});
+                    const std::vector<Marker>& markers = {},
+                    const std::vector<CreatureInstance>& creatures = {});
 // Approximate screen click intersection with a plane at given normalized height.
 // Returns normalized x,z (not clamped, enabling callers to reject outside clicks).
 std::pair<float,float> ScreenToTerrain(const Camera& camera,

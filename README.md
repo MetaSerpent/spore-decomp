@@ -31,6 +31,12 @@ cmake --build build --target spore_creature_probe creature_runtime_tests
 ./build/spore_creature_probe contact 3 3 .4 3.2 3 .4
 ```
 
+The zero-dependency CPU viewer can now rasterize actual indexed creature
+meshes with shading, depth occlusion against terrain and gait animation,
+alongside its original terrain raster and optional marker overlays. Rendering
+is bounded to 128 creatures per frame. `creature_view_tests` compares
+repeatable frame hashes as traits, poses and positions change.
+
 CI runs generated-geometry topology, gait, invalid-input and contact
 regressions, plus executable-level OBJ exports without retail game data.
 
