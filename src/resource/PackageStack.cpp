@@ -1,5 +1,7 @@
 #include "resource/PackageStack.h"
 #include <utility>
+#include <algorithm>
+#include <tuple>
 
 namespace Spore::Resource {
 
@@ -44,6 +46,21 @@ std::optional<PackageStack::Location> PackageStack::Locate(const ResourceKey& ke
   if (it == resolved_.end()) return std::nullopt;
   const Choice& c = it->second;
   return Location{key, c.layer, layers_[c.layer].package->Entries()[c.entry]};
+}
+
+std::vector<PackageStack::Location> PackageStack::EffectiveEntries() const {
+  std::vector<Location> output;
+  output.reserve(resolved_.size());
+  for (const auto& choice : resolved_) {
+    output.push_back(Location{
+        choice.first, choice.second.layer,
+        layers_[choice.second.layer].package->Entries()[choice.second.entry]});
+  }
+  std::sort(output.begin(), output.end(), [](const Location& a, const Location& b) {
+    return std::tie(a.key.type, a.key.group, a.key.instance) <
+           std::tie(b.key.type, b.key.group, b.key.instance);
+  });
+  return output;
 }
 
 std::optional<std::vector<uint8_t>> PackageStack::Read(const ResourceKey& key) {
