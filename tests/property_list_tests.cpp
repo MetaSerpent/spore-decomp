@@ -34,7 +34,7 @@ void Float(Bytes& b, float value) {
   LE32(b, bits);
 }
 void String(Bytes& b, const std::u16string& value) {
-  LE32(b, uint32_t(value.size()));
+  BE32(b, uint32_t(value.size()));
   for (char16_t c : value) {
     b.push_back(uint8_t(c));
     b.push_back(uint8_t(c >> 8));
@@ -74,11 +74,11 @@ void TestScalars() {
   const auto* b = props.Find(2);
   const auto* c = props.Find(3);
   Check(a && b && c && !props.Find(4), "lookup by hashed id");
-  auto k = std::get<ResourceKey>(a->value);
+  auto k = std::get<ResourceKey>(a->values[0]);
   Check(k.instance == 0xAA && k.type == 0xBB && k.group == 0xCC, "resource key field order");
-  auto v = std::get<Vector3>(b->value);
+  auto v = std::get<Vector3>(b->values[0]);
   Check(v.x == 1.5f && v.y == -2.0f && v.z == 3.25f, "vector float endian");
-  Check(std::get<std::u16string>(c->value) == u"Spore \u00e9\U0001F600", "UTF-16LE string");
+  Check(std::get<std::u16string>(c->values[0]) == u"Spore \u00e9\U0001F600", "UTF-16LE string");
   Check(!a->IsArray(), "scalar flags");
 }
 void TestArrays() {
@@ -94,16 +94,16 @@ void TestArrays() {
   Vec3(vectors, 3, 4, 5); LE32(vectors, 0xBABE);
   Record(input, 11, PropertyList::kVector3, 0x10, vectors);
   Bytes strings;
-  BE32(strings, 2); BE32(strings, 0); // variable-size string array
+  BE32(strings, 2); BE32(strings, 16); // nominal stride is inaccurate for strings
   String(strings, u"one"); String(strings, u"two");
   Record(input, 12, PropertyList::kString16, 0x20, strings);
   Check(props.Parse(input), "parse known prop arrays");
-  const auto ks = std::get<std::vector<ResourceKey>>(props.Find(10)->value);
-  const auto vs = std::get<std::vector<Vector3>>(props.Find(11)->value);
-  const auto ss = std::get<std::vector<std::u16string>>(props.Find(12)->value);
-  Check(ks.size() == 2 && ks[1].instance == 4 && ks[1].group == 6, "12-byte key arrays");
-  Check(vs.size() == 2 && vs[1].z == 5.0f, "16-byte padded vector arrays");
-  Check(ss.size() == 2 && ss[0] == u"one" && ss[1] == u"two",
+  const auto& ks = props.Find(10)->values;
+  const auto& vs = props.Find(11)->values;
+  const auto& ss = props.Find(12)->values;
+  Check(ks.size() == 2 && std::get<ResourceKey>(ks[1]).instance == 4 && std::get<ResourceKey>(ks[1]).group == 6, "12-byte key arrays");
+  Check(vs.size() == 2 && std::get<Vector3>(vs[1]).z == 5.0f, "16-byte padded vector arrays");
+  Check(ss.size() == 2 && std::get<std::u16string>(ss[0]) == u"one" && std::get<std::u16string>(ss[1]) == u"two",
         "variable-size string arrays");
 }
 void TestSafety() {
@@ -143,12 +143,86 @@ void TestSafety() {
   Bytes valid_empty; BE32(valid_empty, 0);
   Check(props.Parse(valid_empty) && props.Properties().empty(), "empty property list");
 }
+
+void TestCommonTypes() {
+  PropertyList props;
+  Bytes input; BE32(input, 7);
+  Record(input, 20, PropertyList::kBool, 0, Bytes{1});
+  Bytes integer; BE32(integer, 0xFFFFFFFE);
+  Record(input, 21, PropertyList::kInt32, 0, integer);
+  Bytes unsignedInt; BE32(unsignedInt, 0x87654321);
+  Record(input, 22, PropertyList::kUInt32, 0, unsignedInt);
+  Bytes real; BE32(real, 0x3FC00000); // BE float 1.5
+  Record(input, 23, PropertyList::kFloat, 0, real);
+  Bytes text8; BE32(text8, 4);
+  text8.insert(text8.end(), {'c', 'e', 'l', 'l'});
+  Record(input, 24, PropertyList::kString8, 0, text8);
+  Bytes vec; Float(vec, -2); Float(vec, 3); LE32(vec, 0); LE32(vec, 0);
+  Record(input, 25, PropertyList::kVector2, 0, vec);
+  Bytes color; Vec3(color, 0.25f, 0.5f, 0.75f); Float(color, 1);
+  Record(input, 26, PropertyList::kColorRGBA, 0, color);
+  Check(props.Parse(input), "parse representative game tuning types");
+  Check(std::get<bool>(props.Find(20)->values[0]), "bool");
+  Check(std::get<int32_t>(props.Find(21)->values[0]) == -2, "int32 BE signed");
+  Check(std::get<uint32_t>(props.Find(22)->values[0]) == 0x87654321, "uint32 BE unsigned");
+  Check(std::get<float>(props.Find(23)->values[0]) == 1.5f, "float BE");
+  Check(std::get<std::string>(props.Find(24)->values[0]) == "cell", "string8 BE length");
+  auto pos = std::get<Spore::Resource::Vector2>(props.Find(25)->values[0]);
+  Check(pos.x == -2.0f && pos.y == 3.0f, "vector2 LE with scalar padding");
+  auto rgba = std::get<Spore::Resource::Vector4>(props.Find(26)->values[0]);
+  Check(rgba.x == 0.25f && rgba.w == 1.0f, "RGBA LE");
+}
+
+void TestLocalizedTextAndBoundingBox() {
+  PropertyList props;
+  Bytes input; BE32(input, 2);
+  Bytes text;
+  BE32(text, 1); BE32(text, 16);
+  LE32(text, 0xAABBCCDD); LE32(text, 0x17);
+  text.insert(text.end(), {'O', 0, 'K', 0, 0, 0, 0, 0});
+  Record(input, 40, PropertyList::kText, 0x1c, text);
+  Bytes bbox;
+  BE32(bbox, 1); BE32(bbox, 24);
+  Vec3(bbox, -1, -2, -3);
+  Vec3(bbox, 1, 2, 3);
+  Record(input, 41, PropertyList::kBoundingBox, 0, bbox);
+  Check(props.Parse(input), "localized text and bbox parsed");
+  auto localized = std::get<Spore::Resource::LocalizedText>(props.Find(40)->values[0]);
+  Check(localized.table == 0xAABBCCDD && localized.id == 0x17 &&
+        localized.placeholder == u"OK", "localized placeholder UTF-16LE");
+  auto box = std::get<Spore::Resource::BoundingBox>(props.Find(41)->values[0]);
+  Check(box.minimum.x == -1.0f && box.maximum.z == 3.0f, "bbox min and max");
+}
+
+void TestPropertyArraysAndEmpty() {
+  PropertyList props;
+  Bytes input; BE32(input, 3);
+  Bytes booleans; BE32(booleans, 3); BE32(booleans, 1);
+  booleans.insert(booleans.end(), {0, 1, 0});
+  Record(input, 55, PropertyList::kBool, 0x9c, booleans);
+  Bytes floats; BE32(floats, 2); BE32(floats, 4);
+  BE32(floats, 0x40000000); BE32(floats, 0x40400000);
+  Record(input, 56, PropertyList::kFloat, 0x9c, floats);
+  Bytes empty; BE32(empty, 0); BE32(empty, 12);
+  Record(input, 57, PropertyList::kKey, 0x9c, empty);
+  Check(props.Parse(input), "array of bools, floats and empty keys");
+  const auto& b = props.Find(55)->values;
+  const auto& f = props.Find(56)->values;
+  Check(b.size() == 3 && !std::get<bool>(b[0]) && std::get<bool>(b[1]),
+        "unpacked boolean array");
+  Check(f.size() == 2 && std::get<float>(f[0]) == 2.0f &&
+        std::get<float>(f[1]) == 3.0f, "big endian float array");
+  Check(props.Find(57)->values.empty(), "zero-length array is valid");
+}
 } // namespace
 
 int main() {
   try {
     TestScalars();
     TestArrays();
+    TestCommonTypes();
+    TestLocalizedTextAndBoundingBox();
+    TestPropertyArraysAndEmpty();
     TestSafety();
     std::cout << "Spore PropertyList decoder tests passed.\n";
     return 0;

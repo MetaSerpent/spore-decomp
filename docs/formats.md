@@ -29,7 +29,11 @@ Exe rules (beyond the basic layout below):
 - `flags & 0x30` → array: BE u32 count, BE u32 itemSize, then items.
 - Payloads are **little-endian**: key = {instance, type, group} LE, vector floats LE.
   Single (non-array) key / vector3 values take 16 bytes (the last 4 are uninitialized padding).
-- string16: u32 length (chars), UTF-16LE chars, no terminator.
+- string8/string16: BIG-ENDIAN u32 character count, then byte text / UTF-16LE characters, no terminator.
+- int32/uint32/float scalars and arrays use BIG-ENDIAN values; key and vector fields are LITTLE-ENDIAN.
+- Array specifiers include 0x009C (recognized by flags & 0x30). The nominal array item size for variable-length strings is often 16 and does not represent their true byte span.
+- A new conservative, bounds-checked subset reader lives in `src/resource/PropertyList.cpp` with synthetic regression tests. Supported: bool, int32, uint32, float, string8/16, key, vector2/3/4, RGB/RGBA, localized texts, bounding boxes, and their documented array forms. Transform (0x38) is not yet supported; unsupported records produce explicit errors rather than guessing record sizes.
+- Format cross-check: https://modthesims.info/wiki.php?title=Spore:00B1B104 (community reverse-engineering observations; validate per installed build).
 - Observed types: 0x13 string16, 0x20 key, 0x31 vector3.
 - Group/instance 0x01C7AC81 = file-extension ↔ type-ID map (string16 arrays).
 
