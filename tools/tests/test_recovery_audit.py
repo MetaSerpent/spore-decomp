@@ -27,6 +27,7 @@ class AuditTests(unittest.TestCase):
             b = root / "src" / "game" / "SPTerrain"
             a.mkdir(parents=True)
             b.mkdir()
+            (a / "FakeMigrated.cpp").mkdir()  # Some real migration dirs end with .cpp
             (a / "alpha.cpp").write_text(
                 "// @ 0x00abc123\nvoid alpha() {}\n"
                 "// @ 0x00abc124\nvoid beta() {}\n",
