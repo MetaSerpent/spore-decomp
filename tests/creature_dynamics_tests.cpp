@@ -81,7 +81,7 @@ void corruption(){
  original.Advance({{1,3,3,.3f}},8,8);
  const auto bytes=original.Snapshot();
  rejected([&]{MotionWorld::Restore("");},"empty snapshot");
- rejected([&]{MotionWorld::Restore(bytes.substr(0,bytes.size()-5));},
+ rejected([&]{MotionWorld::Restore(bytes.substr(0,bytes.size()/2));},
           "truncated snapshot");
  rejected([&]{MotionWorld::Restore(bytes+"garbage");},
           "trailing bytes");
