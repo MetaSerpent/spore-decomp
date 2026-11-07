@@ -7,7 +7,8 @@ add_library(spore_resource
   src/resource/DBPF.cpp
   src/resource/RefPack.cpp
   src/resource/Hash.cpp
-  src/resource/PackageStack.cpp)
+  src/resource/PackageStack.cpp
+  src/resource/PropertyList.cpp)
 target_include_directories(spore_resource PUBLIC src)
 if(MSVC)
   target_compile_options(spore_resource PRIVATE /W4)
@@ -26,6 +27,10 @@ add_test(NAME resource_unit COMMAND resource_tests)
 add_executable(package_stack_tests tests/package_stack_tests.cpp)
 target_link_libraries(package_stack_tests PRIVATE spore_resource)
 add_test(NAME resource_package_stack COMMAND package_stack_tests)
+# PropertyList parser based on the documented binary .prop subset, synthetic fixtures only.
+add_executable(property_list_tests tests/property_list_tests.cpp)
+target_link_libraries(property_list_tests PRIVATE spore_resource)
+add_test(NAME resource_property_list COMMAND property_list_tests)
 # Corpus tests need the user's own game data; point SPORE_DATA at Spore/Data.
 if(DEFINED ENV{SPORE_DATA})
   add_test(NAME resource_corpus COMMAND resource_tests --corpus $ENV{SPORE_DATA})
