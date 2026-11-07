@@ -50,6 +50,24 @@ retail rendering implementation**.
 The export is bounded to 262,144 vertices and has standalone C++ and
 subprocess regression tests that do not require any Spore game assets.
 
+### Native interactive terrain viewer
+
+`spore_terrain_live` now opens an actual **native software-rendered window**
+on Windows (Win32/GDI) and Linux/X11. No SDL, external game assets or GPU
+are needed. It uses the portable reconstructed terrain subsystem and the
+software 3D renderer. Camera controls: A/D rotate, W/S tilt, arrows pan,
++/- zoom, R reset; left/right click raises/lowers the terrain; F5 writes
+an edited terrain snapshot. Escape closes the window.
+
+```sh
+cmake --build build --target spore_terrain_live
+./build/spore_terrain_field run 48 32 50 42 .25 .2 terrain.snapshot
+./build/spore_terrain_live terrain.snapshot
+```
+
+The public CI compiles the native application on Windows and Linux. The
+window itself still needs a desktop/display for an interactive smoke test.
+
 ## Setup
 ```sh
 python3 -m venv .venv && .venv/bin/pip install pefile capstone pycryptodome unicorn
