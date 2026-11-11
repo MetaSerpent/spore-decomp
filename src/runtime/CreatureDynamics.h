@@ -24,6 +24,9 @@ class MotionWorld {
   ContactSummary Advance(const std::vector<Body>& targets,
                          float worldWidth,float worldHeight,
                          float response=.35f);
+  // Mirror a simulation that already owns its collision-resolved positions.
+  // No second integration/smoothing. Same strong validation guarantee as Advance.
+  void Synchronize(const std::vector<MotionBody>& states,float worldWidth,float worldHeight);
   const std::vector<MotionBody>& Bodies() const noexcept { return bodies_; }
   const MotionBody* Find(uint64_t id) const noexcept;
   uint64_t Steps() const noexcept { return steps_; }

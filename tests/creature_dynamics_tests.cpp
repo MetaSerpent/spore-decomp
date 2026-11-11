@@ -94,10 +94,21 @@ void corruption(){
          "4 nan 1 0 0 .3\n");},
           "nonfinite saved positions");
 }
+void authoritative_positions(){
+ MotionWorld state;
+ state.Synchronize({{2,3.25f,2.5f,1.5f,-.25f,.3f},{1,.625f,1,0,0,.25f}},8,8);
+ check(state.Find(1)->x==.625f&&state.Find(2)->velocityX==1.5f,"simulation poses must not acquire spring lag");
+ const auto bytes=state.Snapshot();
+ check(MotionWorld::Restore(bytes).Snapshot()==bytes,"authoritative poses and velocity replay exactly");
+ rejected([&]{state.Synchronize({{1,1,1,0,0,.3f},{1,2,2,0,0,.3f}},8,8);},"duplicate authoritative IDs");
+ check(state.Snapshot()==bytes,"bad authoritative input leaves state unchanged");
+ rejected([&]{state.Synchronize({{1,9,1,0,0,.3f}},8,8);},"authoritative pose outside bounds");
+ check(state.Snapshot()==bytes,"bounds failure leaves state unchanged");
+}
 }
 int main(){
  try{
-  deterministic();spawns_contacts_and_validation();corruption();
+  deterministic();spawns_contacts_and_validation();corruption();authoritative_positions();
   std::cout<<"Persistent creature motion/collision tests passed\n";
   return 0;
  }catch(const std::exception&e){

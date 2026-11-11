@@ -94,6 +94,17 @@ const MotionBody* MotionWorld::Find(uint64_t id) const noexcept {
       [](const MotionBody& b,uint64_t target){return b.id<target;});
   return it==bodies_.end()||it->id!=id?nullptr:&*it;
 }
+void MotionWorld::Synchronize(const std::vector<MotionBody>& states,float w,float h) {
+  if(!std::isfinite(w)||!std::isfinite(h)||w<2||h<2||w>100000||h>100000||states.size()>maxActors)
+    throw std::invalid_argument("invalid authoritative motion dimensions");
+  auto sorted=states;
+  std::sort(sorted.begin(),sorted.end(),[](const auto& a,const auto& b){return a.id<b.id;});
+  for(size_t i=0;i<sorted.size();++i)
+    if(!Valid(sorted[i])||sorted[i].x>w||sorted[i].z>h||(i&&sorted[i].id==sorted[i-1].id))
+      throw std::invalid_argument("invalid authoritative motion body");
+  if(steps_==UINT64_MAX)throw std::overflow_error("motion step counter overflow");
+  bodies_=std::move(sorted);++steps_;
+}
 uint64_t MotionWorld::Checksum() const noexcept {
   uint64_t h=offset;
   HashWord(h,uint32_t(steps_));HashWord(h,uint32_t(steps_>>32));

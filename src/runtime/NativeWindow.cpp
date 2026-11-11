@@ -40,6 +40,7 @@ int KeyForWindows(WPARAM v) {
   case VK_UP:return UpArrow;case VK_DOWN:return DownArrow;
   case VK_F5:return F5;case VK_F9:return F9;
   case VK_ESCAPE:return 27;case VK_SPACE:return 32;
+  case VK_RETURN:return 13;
   case VK_ADD:case VK_OEM_PLUS:return '+';
   case VK_SUBTRACT:case VK_OEM_MINUS:return '-';
   default:return v>=32 && v<=126?static_cast<int>(v):0;
@@ -58,6 +59,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
     DestroyWindow(hwnd);
     return 0;
   case WM_DESTROY:state->alive=false;PostQuitMessage(0);return 0;
+  case WM_KILLFOCUS:
+    if(state->cb->onInput)state->cb->onInput({InputKind::FocusLost});
+    return 0;
+  case WM_KEYUP:{
+    const int key=KeyForWindows(wp);
+    if(state->cb->onInput&&key)state->cb->onInput({InputKind::KeyUp,key});
+    return 0;
+  }
   case WM_KEYDOWN:{
     const int key=KeyForWindows(wp);
     if(state->cb->onInput && key)
@@ -66,6 +75,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
     return 0;
   }
   case WM_LBUTTONDOWN:case WM_RBUTTONDOWN:case WM_MBUTTONDOWN:{
+    SetCapture(hwnd);
     const int button=msg==WM_LBUTTONDOWN?1:msg==WM_MBUTTONDOWN?2:3;
     if(state->cb->onInput){
       const int x=static_cast<short>(LOWORD(lp));
@@ -74,6 +84,18 @@ LRESULT CALLBACK WindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
     }
     return 0;
   }
+  case WM_LBUTTONUP:case WM_RBUTTONUP:case WM_MBUTTONUP:{
+    ReleaseCapture();
+    const int button=msg==WM_LBUTTONUP?1:msg==WM_MBUTTONUP?2:3;
+    if(state->cb->onInput)state->cb->onInput({InputKind::MouseUp,0,
+        static_cast<short>(LOWORD(lp)),static_cast<short>(HIWORD(lp)),button});
+    return 0;
+  }
+  case WM_MOUSEMOVE:
+    if(state->cb->onInput&&(wp&(MK_LBUTTON|MK_RBUTTON|MK_MBUTTON)))
+      state->cb->onInput({InputKind::MouseMove,0,static_cast<short>(LOWORD(lp)),
+                         static_cast<short>(HIWORD(lp)),(wp&MK_LBUTTON)?1:(wp&MK_MBUTTON)?2:3});
+    return 0;
   case WM_ERASEBKGND:return 1;
   case WM_PAINT:{
     PAINTSTRUCT paint;BeginPaint(hwnd,&paint);EndPaint(hwnd,&paint);
@@ -89,6 +111,7 @@ int KeyForX11(KeySym value) {
   case XK_Up:return UpArrow;case XK_Down:return DownArrow;
   case XK_F5:return F5;case XK_F9:return F9;
   case XK_Escape:return 27;case XK_space:return 32;
+  case XK_Return:case XK_KP_Enter:return 13;
   case XK_equal:case XK_plus:case XK_KP_Add:return '+';
   case XK_minus:case XK_KP_Subtract:return '-';
   default:
@@ -166,8 +189,8 @@ int RunDesktop(const std::string& title,uint32_t initialWidth,uint32_t initialHe
                                     BlackPixel(display,screen),
                                     WhitePixel(display,screen));
   XStoreName(display,win,title.c_str());
-  XSelectInput(display,win,ExposureMask|KeyPressMask|ButtonPressMask|
-                                StructureNotifyMask);
+  XSelectInput(display,win,ExposureMask|KeyPressMask|KeyReleaseMask|ButtonPressMask|
+                ButtonReleaseMask|ButtonMotionMask|FocusChangeMask|StructureNotifyMask);
   Atom wmDelete=XInternAtom(display,"WM_DELETE_WINDOW",False);
   XSetWMProtocols(display,win,&wmDelete,1);
   XMapWindow(display,win);
@@ -194,6 +217,29 @@ int RunDesktop(const std::string& title,uint32_t initialWidth,uint32_t initialHe
         const int key=KeyForX11(XLookupKeysym(&event.xkey,0));
         if(callbacks.onInput&&key)callbacks.onInput({InputKind::KeyDown,key});
         if(key==27)alive=false;
+        break;
+      }
+      case KeyRelease:{
+        // X11 auto-repeat can emit a release immediately followed by a press.
+        if(XPending(display)) {
+          XEvent next;XPeekEvent(display,&next);
+          if(next.type==KeyPress&&next.xkey.time==event.xkey.time&&
+             next.xkey.keycode==event.xkey.keycode)break;
+        }
+        const int key=KeyForX11(XLookupKeysym(&event.xkey,0));
+        if(callbacks.onInput&&key)callbacks.onInput({InputKind::KeyUp,key});
+        break;
+      }
+      case FocusOut:if(callbacks.onInput)callbacks.onInput({InputKind::FocusLost});break;
+      case MotionNotify:
+        if(callbacks.onInput)callbacks.onInput({InputKind::MouseMove,0,event.xmotion.x,event.xmotion.y,
+            (event.xmotion.state&Button1Mask)?1:(event.xmotion.state&Button2Mask)?2:
+            (event.xmotion.state&Button3Mask)?3:0});
+        break;
+      case ButtonRelease:{
+        const int button=event.xbutton.button==Button1?1:event.xbutton.button==Button2?2:
+                         event.xbutton.button==Button3?3:0;
+        if(callbacks.onInput&&button)callbacks.onInput({InputKind::MouseUp,0,event.xbutton.x,event.xbutton.y,button});
         break;
       }
       case ButtonPress:{

@@ -10,7 +10,8 @@ namespace Spore::Terrain::View {
 // Zero-SDL native desktop loop. Win32/GDI on Windows and X11 on Linux.
 // The graphics and input adapters belong to this reconstructed-engine tooling
 // and do not claim to reproduce the original Spore input/rendering stack.
-enum class InputKind : uint8_t { KeyDown, MouseDown, Close };
+// Keep the original values stable for existing viewers and recorded inputs.
+enum class InputKind : uint8_t { KeyDown, MouseDown, Close, KeyUp, MouseMove, MouseUp, FocusLost };
 enum KeyCode : int {
   LeftArrow = 1001, RightArrow = 1002, UpArrow = 1003,
   DownArrow = 1004, F5 = 2005, F9 = 2009,
@@ -19,7 +20,7 @@ struct InputEvent {
   InputKind kind = InputKind::KeyDown;
   int key = 0;            // uppercase ASCII or KeyCode for special keys
   int x = 0, y = 0;      // mouse coordinates in pixels
-  int mouseButton = 0;   // 1 left, 2 middle, 3 right
+  int mouseButton = 0;   // 1 left, 2 middle, 3 right; held button for MouseMove
 };
 struct DesktopCallbacks {
   // Required: a frame with the exact width and height supplied by the window.
