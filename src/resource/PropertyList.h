@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -16,11 +17,19 @@ struct Vector3 { float x = 0, y = 0, z = 0; };
 struct Vector4 { float x = 0, y = 0, z = 0, w = 0; };
 struct BoundingBox { Vector3 minimum, maximum; };
 struct LocalizedText { uint32_t table = 0, id = 0; std::u16string placeholder; };
+// Complete 56-byte .prop transform layout (cSPTransform). Rotation entries
+// retain the serialized column order; decoding does not apply the transform.
+struct Transform {
+  uint16_t flags = 0, modificationCount = 0;
+  Vector3 translation;
+  float scale = 1;
+  std::array<float, 9> rotation = {1,0,0, 0,1,0, 0,0,1};
+};
 
 using PropertyElement = std::variant<
     bool, int32_t, uint32_t, float,
     std::string, std::u16string, ResourceKey,
-    Vector2, Vector3, Vector4, BoundingBox, LocalizedText>;
+    Vector2, Vector3, Vector4, BoundingBox, LocalizedText, Transform>;
 
 struct Property {
   uint32_t id = 0;
@@ -29,7 +38,7 @@ struct Property {
   // Scalar properties have one value; array properties have zero or more.
   // Keeping values homogeneous without a union permits safe validation.
   std::vector<PropertyElement> values;
-  bool IsArray() const { return (flags & 0x30U) != 0 || type == 0x22 || type == 0x39; }
+  bool IsArray() const { return (flags & 0x30U) != 0 || type == 0x22 || type == 0x38 || type == 0x39; }
 };
 
 class PropertyList {
@@ -47,6 +56,7 @@ class PropertyList {
   static constexpr uint16_t kColorRGB = 0x32;
   static constexpr uint16_t kVector4 = 0x33;
   static constexpr uint16_t kColorRGBA = 0x34;
+  static constexpr uint16_t kTransform = 0x38;
   static constexpr uint16_t kBoundingBox = 0x39;
 
   // On error existing properties are cleared and Error() explains the failure.

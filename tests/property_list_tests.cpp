@@ -214,6 +214,46 @@ void TestPropertyArraysAndEmpty() {
         std::get<float>(f[1]) == 3.0f, "big endian float array");
   Check(props.Find(57)->values.empty(), "zero-length array is valid");
 }
+void TestTransforms() {
+  // Generated values only; no installed game bytes in this fixture.
+  Bytes input; BE32(input, 2);
+  Bytes transforms; BE32(transforms, 2); BE32(transforms, 60);
+  for (unsigned i = 0; i < 2; ++i) {
+    transforms.insert(transforms.end(), {0x23, 0x81, 0x56, 0x34});
+    Vec3(transforms, float(i)+1.5f, -2.25f, 7.0f);
+    Float(transforms, float(i)+.5f);
+    for (unsigned j = 0; j < 9; ++j) Float(transforms, float(i*10+j)-3.5f);
+    LE32(transforms, 0xDEADBEEF); // permitted per-item stride padding
+  }
+  Record(input, 70, PropertyList::kTransform, 0x9c, transforms);
+  Bytes number; BE32(number, 12345);
+  Record(input, 71, PropertyList::kUInt32, 0, number);
+  PropertyList props;
+  Check(props.Parse(input), "padded transform arrays parse through the following property");
+  const auto& values = props.Find(70)->values;
+  Check(values.size() == 2 && props.Find(70)->IsArray(), "transform count retained");
+  const auto& a = std::get<Spore::Resource::Transform>(values[0]);
+  const auto& b = std::get<Spore::Resource::Transform>(values[1]);
+  Check(a.flags == 0x8123 && a.modificationCount == 0x3456, "transform u16 fields are little endian and preserved");
+  Check(a.translation.x == 1.5f && a.translation.y == -2.25f && b.translation.x == 2.5f &&
+        a.scale == .5f && b.scale == 1.5f, "transform translation and scale are little endian");
+  Check(a.rotation[0] == -3.5f && a.rotation[8] == 4.5f && b.rotation[4] == 10.5f,
+        "all nine asymmetric matrix entries retain serialized order");
+  Check(std::get<uint32_t>(props.Find(71)->values[0]) == 12345, "item padding does not consume a following record");
+  for (size_t n = 0; n < input.size(); ++n) {
+    Check(!props.Parse(Bytes(input.begin(), input.begin()+n)), "truncated transforms fail safely");
+    Check(props.Properties().empty(), "a truncated matrix clears previous parse state");
+  }
+  Bytes invalid; BE32(invalid, 1);
+  Bytes shortItem; BE32(shortItem, 1); BE32(shortItem, 55); shortItem.resize(8+55, 0);
+  Record(invalid, 72, PropertyList::kTransform, 0x10, shortItem);
+  Check(!props.Parse(invalid), "transform strides smaller than 56 are rejected");
+  Bytes empty; BE32(empty, 1);
+  Bytes emptyItems; BE32(emptyItems, 0); BE32(emptyItems, 56);
+  Record(empty, 73, PropertyList::kTransform, 0, emptyItems);
+  Check(props.Parse(empty) && props.Find(73)->IsArray() && props.Find(73)->values.empty(),
+        "transform type retains its implicit array form with empty contents");
+}
 } // namespace
 
 int main() {
@@ -224,6 +264,7 @@ int main() {
     TestLocalizedTextAndBoundingBox();
     TestPropertyArraysAndEmpty();
     TestSafety();
+    TestTransforms();
     std::cout << "Spore PropertyList decoder tests passed.\n";
     return 0;
   } catch (const std::exception& e) {

@@ -127,6 +127,7 @@ size_t ArrayWidth(uint16_t type) {
     case PropertyList::kVector4:
     case PropertyList::kColorRGBA: return 16;
     case PropertyList::kBoundingBox: return 24;
+    case PropertyList::kTransform: return 56;
     case PropertyList::kText: return 8;
     case PropertyList::kString8:
     case PropertyList::kString16: return 4; // minimum length prefix
@@ -191,6 +192,16 @@ bool ReadOne(Reader& r, uint16_t type, size_t end,
     case PropertyList::kColorRGBA: {
       Vector4 v;
       if (!ReadVec4(r, end, v)) return false;
+      result = v;
+      return true;
+    }
+    case PropertyList::kTransform: {
+      Transform v;
+      if (!isArray || !r.LE16(v.flags, end) || !r.LE16(v.modificationCount, end) ||
+          !ReadVec3(r, end, v.translation) || !ReadFloatLE(r, end, v.scale))
+        return false;
+      for (auto& component : v.rotation)
+        if (!ReadFloatLE(r, end, component)) return false;
       result = v;
       return true;
     }

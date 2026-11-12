@@ -32,7 +32,7 @@ Exe rules (beyond the basic layout below):
 - string8/string16: BIG-ENDIAN u32 character count, then byte text / UTF-16LE characters, no terminator.
 - int32/uint32/float scalars and arrays use BIG-ENDIAN values; key and vector fields are LITTLE-ENDIAN.
 - Array specifiers include 0x009C (recognized by flags & 0x30). The nominal array item size for variable-length strings is often 16 and does not represent their true byte span.
-- A new conservative, bounds-checked subset reader lives in `src/resource/PropertyList.cpp` with synthetic regression tests. Supported: bool, int32, uint32, float, string8/16, key, vector2/3/4, RGB/RGBA, localized texts, bounding boxes, and their documented array forms. Transform (0x38) is not yet supported; unsupported records produce explicit errors rather than guessing record sizes.
+- A new conservative, bounds-checked subset reader lives in `src/resource/PropertyList.cpp` with synthetic regression tests. Supported: bool, int32, uint32, float, string8/16, key, vector2/3/4, RGB/RGBA, localized texts, bounding boxes, and their documented array forms. Transform arrays (0x38) preserve flags, modification count, translation, scale and rotation; unsupported records still produce explicit errors rather than guessing record sizes.
 - Format cross-check: https://modthesims.info/wiki.php?title=Spore:00B1B104 (community reverse-engineering observations; validate per installed build).
 - Observed types: 0x13 string16, 0x20 key, 0x31 vector3.
 - Group/instance 0x01C7AC81 = file-extension ↔ type-ID map (string16 arrays).
@@ -81,3 +81,30 @@ cannot guarantee the previous stack remains backed by immutable bytes.
 
 Regression fixtures cover property changes, explicit reload, unchanged refresh,
 cache invalidation and recovery after a corrupted package.
+
+
+## Transform property corpus validation (2026-11-12)
+
+Type `0x38` is an array of complete 56-byte transforms. Each item is LE u16
+flags, LE u16 modification count, LE float3 translation, LE float scale and
+nine LE rotation floats in serialized column order. Array counts/strides remain
+BE; strides below 56 fail and larger strides preserve item boundaries. The type
+has array framing even without array flag bits, like localized text and boxes.
+The decoder retains metadata and values; it does not apply transforms or
+interpret unknown flag bits.
+
+Evidence: the existing `src/game/include/cSPTransform.h` retail layout and
+[SporeModder FX PropertyTransform](https://github.com/Spore-Community/SporeModder-FX/blob/master/src/sporemodder/file/prop/PropertyTransform.java)
+plus its `Transform.readComplete` format description. This is an independent
+bounds-checked reader implementation; no SporeModder source was incorporated.
+Synthetic tests cover asymmetric matrix entries, negative translation, metadata,
+padded strides, following-record alignment, implicit empty arrays, all truncated
+prefixes and short strides.
+
+Read-only local corpus: Steam app 17390 build 16095569, EXE SHA-256
+`f9716458cdc232a507686dcb490e75680c514e31a5b1f33601b0dfcd05baf75d`.
+Across seven top-level packages with PatchData mounted last, transform support
+changes successful property-resource decoding from 10,750/12,372 to
+**12,372/12,372**. Inheritance resolves 12,091 resources; 281 chains still refer
+to resources absent from that mounted stack. This is not proof of complete
+retail inheritance semantics or package load order. No corpus bytes are shipped.
